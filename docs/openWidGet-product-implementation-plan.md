@@ -510,6 +510,28 @@ Widget UI
 
 ---
 
+## 14.5 Licensing model
+
+openWidGet은 플랫폼 보호와 위젯 생태계 확장성을 동시에 잡기 위해 hybrid licensing을 사용한다.
+
+```txt
+Core/runtime/desktop app: AGPL-3.0-or-later
+Widget templates/example starter code: MIT
+Community widgets: OSI-approved license declared in widget.json
+```
+
+정책:
+
+- Rust core, Tauri/WebView runtime, Anchor Shortcut manager, registry manager, permission/auth/data scheduler는 AGPL-3.0-or-later.
+- 위젯 템플릿과 예제 starter code는 MIT로 제공하여 개발자가 부담 없이 복사/수정할 수 있게 한다.
+- 공식 community registry에 들어오는 위젯은 `widget.json`에 SPDX license를 반드시 선언해야 한다.
+- 비상업 전용, 학술 전용, source-available, custom restrictive license는 공식 registry 기본 허용 대상이 아니다.
+- third-party library/framework/model/asset은 출처와 라이선스를 문서화한다.
+
+이 정책은 오픈소스 개발자대회의 OSI 인증 라이선스 요구사항을 만족하면서, openWidGet core 개선 사항이 커뮤니티에 환원되도록 한다.
+
+---
+
 ## 15. Tray and auto-start UX
 
 openWidGet은 시스템 트레이에 상주한다.
@@ -933,6 +955,7 @@ Note: 브랜드 표기는 `openWidGet`, package/crate/CLI는 lowercase `openwidg
 - Widget UI: HTML/CSS/JS.
 - Widget packaging: `widget.json` manifest + web files.
 - Widget install: on-demand, not all bundled.
+- Licensing: core/runtime AGPL-3.0-or-later; widget templates/examples MIT; community widgets OSI-approved license required.
 - App detection: recommend widgets based on installed apps.
 - Startup: auto-start recommended, user-controllable.
 - Background: tray-based lightweight agent.

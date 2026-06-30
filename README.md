@@ -39,6 +39,7 @@ A widget occupies Windows desktop icon-grid space through runtime **Anchor Short
 ## Documentation
 
 - [Product & Implementation Plan](docs/openWidGet-product-implementation-plan.md)
+- [Licensing Policy](docs/licensing.md)
 
 ## Status
 
@@ -46,4 +47,10 @@ Planning/spec phase. Implementation has not started yet.
 
 ## License
 
-MIT
+openWidGet uses a hybrid open-source licensing strategy:
+
+- **Core/runtime/desktop app:** AGPL-3.0-or-later
+- **Widget templates and example starter code:** MIT
+- **Community widgets:** Any OSI-approved license declared in `widget.json`
+
+See [docs/licensing.md](docs/licensing.md) for details.
