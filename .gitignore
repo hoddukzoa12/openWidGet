@@ -1,0 +1,44 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Secrets / local env
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Rust / Tauri
+/target/
+**/target/
+Cargo.lock
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.vite/
+.turbo/
+.next/
+.cache/
+
+# Logs / temp
+*.log
+logs/
+tmp/
+temp/
+
+# Local generated artifacts
+*.msi
+*.exe
+*.dmg
+*.app
+*.zip
+
+# Screenshots/videos generated during QA unless explicitly committed
+qa-artifacts/
+screenshots/
+recordings/
