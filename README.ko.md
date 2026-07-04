@@ -32,6 +32,7 @@ Windows 직접 테스트 체크리스트는 [`docs/ko/manual-test.md`](./docs/ko
 - [한국어 Quickstart](./docs/ko/quickstart.md)
 - [프로젝트 노트](./docs/ko/project-note.md)
 - [수동 테스트](./docs/ko/manual-test.md)
+- [개발 워크플로우](./docs/ko/development-workflow.md)
 - [English README](./README.md)
 
 ## 라이선스
