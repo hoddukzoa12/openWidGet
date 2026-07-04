@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OpenWidGet Product-Proof Surface Prototype</title>
+  <style>
+    :root { color: #f4f7fb; background: #07090d; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; --mint:#6fffc1; --sky:#77d4ff; --violet:#a98cff; --amber:#ffd166; --line:rgba(204,218,255,.16); --muted:#a6b0bf; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 20% 0%, rgba(111,255,193,.12), transparent 34rem), radial-gradient(circle at 90% 20%, rgba(119,212,255,.13), transparent 32rem), linear-gradient(135deg,#07090d,#0a0f18 48%,#07090d); }
+    .shell { width: min(1440px, calc(100vw - 40px)); margin: 0 auto; padding: 24px 0; display: grid; gap: 18px; }
+    .topbar, .desktop, .receipt { border: 1px solid var(--line); border-radius: 28px; background: rgba(9,12,18,.82); box-shadow: 0 24px 90px rgba(0,0,0,.36); overflow: hidden; }
+    .topbar { min-height: 72px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .mark { width:46px; height:46px; display:grid; place-items:center; border-radius:14px; color:#06110c; background:linear-gradient(135deg,var(--mint),#d9ff7e); font-weight:950; letter-spacing:-.08em; }
+    .eyebrow { margin: 0; color: var(--mint); font-size: .72rem; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+    .brand strong { display:block; margin-top:3px; font-size:1.18rem; letter-spacing:-.04em; }
+    .formula { display:flex; align-items:center; gap:14px; color:var(--muted); }
+    .formula strong { color:white; }
+    .formula code { border:1px solid rgba(119,212,255,.24); border-radius:999px; padding:.45rem .72rem; color:#cdefff; background:rgba(119,212,255,.07); font-size:.78rem; }
+    .layout { display:grid; grid-template-columns: minmax(0,1.46fr) minmax(340px,.54fr); gap:18px; }
+    .desktop { min-height:720px; display:grid; grid-template-rows:auto 1fr; }
+    .copy { padding: 38px 46px 20px; display:grid; gap:13px; }
+    h1 { max-width:900px; margin:0; font-size:clamp(2.7rem,5.8vw,6.8rem); line-height:.84; letter-spacing:-.082em; }
+    .copy p:last-child { max-width:760px; margin:0; color:var(--muted); font-size:1.08rem; line-height:1.58; }
+    .frame { margin: 0 28px 28px; border:1px solid rgba(204,218,255,.22); border-radius:24px; overflow:hidden; background:#08101a; }
+    .chrome { display:flex; justify-content:space-between; padding:11px 14px; color:#c7d2e3; background:linear-gradient(180deg,#202734,#141a24); border-bottom:1px solid rgba(204,218,255,.15); font-size:.82rem; }
+    .grid { position:relative; min-height:500px; padding:18px 18px 58px; display:grid; grid-template-columns:repeat(8,minmax(64px,1fr)); grid-template-rows:repeat(6,minmax(64px,1fr)); gap:12px; background: linear-gradient(rgba(185,204,255,.14) 1px, transparent 1px), linear-gradient(90deg, rgba(185,204,255,.14) 1px, transparent 1px), radial-gradient(circle at 25% 25%, rgba(119,212,255,.18), transparent 22rem), radial-gradient(circle at 70% 35%, rgba(111,255,193,.14), transparent 20rem), linear-gradient(135deg,#0f2034,#111927 52%,#0a111b); background-size:76px 76px,76px 76px,auto,auto,auto; }
+    .grid::before { content:'Anchor Shortcut projection layer'; position:absolute; top:14px; right:16px; z-index:1; border:1px dashed rgba(111,255,193,.38); border-radius:999px; padding:.36rem .66rem; color:rgba(232,255,244,.88); background:rgba(2,10,8,.42); font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; }
+    .icon { z-index:0; display:grid; place-items:center; gap:4px; justify-self:center; align-self:start; color:rgba(244,247,251,.82); text-align:center; font-size:.74rem; }
+    .icon b { width:38px; height:38px; display:grid; place-items:center; border:1px solid rgba(255,255,255,.22); border-radius:10px; background:rgba(255,255,255,.13); }
+    .widget { position:relative; z-index:2; display:grid; grid-template-rows:auto auto auto 1fr auto; gap:9px; border:1px solid rgba(255,255,255,.2); border-radius:24px; padding:15px; color:white; background:linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.045)), rgba(11,16,24,.82); box-shadow:0 20px 60px rgba(0,0,0,.32); }
+    .widget::before { content:''; position:absolute; inset:8px; border:1px dashed color-mix(in oklch, var(--accent), transparent 55%); border-radius:18px; }
+    .widget small { color: color-mix(in oklch, var(--accent), white 18%); font-size:.68rem; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
+    .widget strong { font-size:1.35rem; letter-spacing:-.045em; }
+    .metric { color:var(--accent); font-size:2.4rem; font-weight:900; letter-spacing:-.08em; line-height:.92; }
+    .widget p { margin:0; color:#c7d0dd; font-size:.84rem; line-height:1.35; }
+    .taskbar { position:absolute; left:14px; right:14px; bottom:12px; z-index:4; min-height:38px; display:flex; align-items:center; gap:9px; border:1px solid rgba(204,218,255,.2); border-radius:16px; padding:6px 8px; color:#d9e3f0; background:rgba(9,13,20,.78); backdrop-filter:blur(18px); font-size:.78rem; }
+    .taskbar span { min-height:26px; display:inline-flex; align-items:center; border-radius:10px; padding:0 10px; background:rgba(255,255,255,.08); }
+    .taskbar .active { color:#06110c; background:linear-gradient(135deg,var(--mint),#d9ff7e); font-weight:850; }
+    .receipt { min-height:720px; padding:28px; display:flex; flex-direction:column; gap:18px; }
+    h2 { margin:0; font-size:3rem; line-height:.9; letter-spacing:-.075em; }
+    .receipt p { margin:0; color:var(--muted); line-height:1.55; }
+    .manifest { border:1px solid rgba(111,255,193,.24); border-radius:20px; overflow:hidden; background:#060b0f; }
+    .manifest b { display:block; border-bottom:1px solid rgba(111,255,193,.18); padding:10px 13px; color:var(--mint); font-size:.74rem; letter-spacing:.11em; text-transform:uppercase; }
+    pre { margin:0; padding:14px; overflow-x:auto; color:#d6ffe8; font: .78rem/1.55 "SFMono-Regular", Consolas, monospace; }
+    ul { display:grid; gap:8px; margin:0; padding:0; list-style:none; }
+    li { border:1px solid rgba(204,218,255,.14); border-radius:14px; padding:10px 11px; color:#dce5f2; background:rgba(255,255,255,.04); font-size:.86rem; }
+    @media (max-width: 1120px) { .layout { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <section class="shell">
+    <header class="topbar"><div class="brand"><span class="mark">OW</span><span><p class="eyebrow">v0.1-alpha · shell preview</p><strong>OpenWidGet</strong></span></div><div class="formula"><strong>Windows desktop widget runtime</strong><code>Live Shortcut Group + Overlay + Actions</code></div></header>
+    <main class="layout">
+      <section class="desktop"><div class="copy"><p class="eyebrow">Product proof surface</p><h1>HTML/CSS/JS widgets, pinned to the Windows desktop grid.</h1><p>OpenWidGet reserves desktop icon-grid space with runtime Anchor Shortcuts, then renders live WebView widgets above those slots.</p></div><div class="frame"><div class="chrome"><span>Windows desktop · primary monitor</span><span>8×6 icon grid · 20 anchor slots</span></div><div class="grid">
+        <span class="icon" style="grid-column:1;grid-row:1"><b>♻</b><small>Recycle</small></span><span class="icon" style="grid-column:1;grid-row:2"><b>▣</b><small>Files</small></span><span class="icon" style="grid-column:1;grid-row:3"><b>◎</b><small>Browser</small></span><span class="icon" style="grid-column:8;grid-row:1"><b>✎</b><small>Notes</small></span>
+        <article class="widget" style="--accent:var(--mint);grid-area:2 / 2 / span 2 / span 2"><small>2×2 Live Shortcut Group</small><strong>Clock</strong><span class="metric">10:42</span><p>Local-first time widget pinned to a desktop icon footprint.</p></article>
+        <article class="widget" style="--accent:var(--sky);grid-area:2 / 5 / span 2 / span 2"><small>2×2 Live Shortcut Group</small><strong>Weather</strong><span class="metric">23°</span><p>Network-backed widget rendered above reserved Anchor Shortcut slots.</p></article>
+        <article class="widget" style="--accent:var(--violet);grid-area:5 / 2 / span 2 / span 4"><small>4×2 Live Shortcut Group</small><strong>Project Launcher</strong><span class="metric">4 actions</span><p>Opens folders, repos, dashboards, and local dev URLs.</p></article>
+        <article class="widget" style="--accent:var(--amber);grid-area:5 / 7 / span 2 / span 2"><small>2×2 Live Shortcut Group</small><strong>System</strong><span class="metric">18%</span><p>System metrics stay behind the Rust permission boundary.</p></article>
+        <div class="taskbar"><span>⊞</span><span>Search</span><span class="active">OpenWidGet</span><span style="margin-left:auto">Tray · runtime on</span></div>
+      </div></div></section>
+      <aside class="receipt"><p class="eyebrow">Selected widget receipt</p><h2>Project Launcher</h2><p>widgets/project-launcher/widget.json</p><div class="manifest"><b>widget.json</b><pre>{
+  "id": "launcher",
+  "runtime": "desktop-grid",
+  "size": "4×2",
+  "anchors": 8,
+  "entry": "index.html"
+}</pre></div><h3>Permissions</h3><ul><li>filesystem · open folders</li><li>process · launch apps</li></ul><h3>Actions</h3><ul><li>open repo</li><li>open terminal</li><li>open localhost</li><li>open docs</li></ul></aside>
+    </main>
+  </section>
+</body>
+</html>

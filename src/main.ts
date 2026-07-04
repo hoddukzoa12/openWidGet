@@ -15,16 +15,114 @@ type WidgetPreview = {
   status: "bundled-preview";
 };
 
+type PermissionKind = "time" | "network" | "filesystem" | "system" | "process";
+
+type RuntimeWidget = {
+  id: string;
+  name: string;
+  size: string;
+  grid: string;
+  accent: "mint" | "sky" | "violet" | "amber";
+  anchorCount: number;
+  manifest: string;
+  body: string;
+  metric: string;
+  status: string;
+  permissions: Array<{ kind: PermissionKind; label: string }>;
+  actions: string[];
+};
+
+type DesktopIcon = {
+  name: string;
+  glyph: string;
+  gridColumn: string;
+  gridRow: string;
+};
+
 const fallbackStatus: AppStatus = {
   app_name: "OpenWidGet",
   version: "0.1.0-alpha.0",
   mode: "shell-preview",
   widgets: [
     { id: "clock", name: "Clock", size: "2×2", status: "bundled-preview" },
-    { id: "memo", name: "Memo", size: "2×2", status: "bundled-preview" },
-    { id: "launcher", name: "Project Launcher", size: "4×2", status: "bundled-preview" }
+    { id: "weather", name: "Weather", size: "2×2", status: "bundled-preview" },
+    { id: "launcher", name: "Project Launcher", size: "4×2", status: "bundled-preview" },
+    { id: "system", name: "System Monitor", size: "2×2", status: "bundled-preview" }
   ]
 };
+
+const widgets: RuntimeWidget[] = [
+  {
+    id: "clock",
+    name: "Clock",
+    size: "2×2",
+    grid: "2 / 2 / span 2 / span 2",
+    accent: "mint",
+    anchorCount: 4,
+    manifest: "widgets/clock/widget.json",
+    body: "Local-first time widget pinned to a 2×2 desktop icon footprint.",
+    metric: currentTime(),
+    status: "overlay preview",
+    permissions: [{ kind: "time", label: "local time" }],
+    actions: ["open calendar", "copy current time"]
+  },
+  {
+    id: "weather",
+    name: "Weather",
+    size: "2×2",
+    grid: "2 / 5 / span 2 / span 2",
+    accent: "sky",
+    anchorCount: 4,
+    manifest: "widgets/weather/widget.json",
+    body: "Network-backed widget rendered above reserved Anchor Shortcut slots.",
+    metric: "Seoul · 23°",
+    status: "data source mock",
+    permissions: [{ kind: "network", label: "weather API" }],
+    actions: ["refresh forecast", "open weather source"]
+  },
+  {
+    id: "launcher",
+    name: "Project Launcher",
+    size: "4×2",
+    grid: "4 / 2 / span 2 / span 4",
+    accent: "violet",
+    anchorCount: 8,
+    manifest: "widgets/project-launcher/widget.json",
+    body: "Opens repos, folders, dashboards, and local dev URLs.",
+    metric: "4 actions",
+    status: "action bridge mock",
+    permissions: [
+      { kind: "filesystem", label: "open folders" },
+      { kind: "process", label: "launch apps" }
+    ],
+    actions: ["open repo", "open terminal", "open localhost", "open docs"]
+  },
+  {
+    id: "system",
+    name: "System Monitor",
+    size: "2×2",
+    grid: "4 / 7 / span 2 / span 2",
+    accent: "amber",
+    anchorCount: 4,
+    manifest: "widgets/system-monitor/widget.json",
+    body: "Metrics stay behind the Rust permission boundary.",
+    metric: "CPU 18%",
+    status: "permission gate mock",
+    permissions: [{ kind: "system", label: "read metrics" }],
+    actions: ["open task manager", "copy diagnostics"]
+  }
+];
+
+const desktopIcons: DesktopIcon[] = [
+  { name: "Recycle", glyph: "♻", gridColumn: "1", gridRow: "1" },
+  { name: "Files", glyph: "▣", gridColumn: "1", gridRow: "2" },
+  { name: "Browser", glyph: "◎", gridColumn: "1", gridRow: "3" },
+  { name: "Terminal", glyph: "›_", gridColumn: "1", gridRow: "4" },
+  { name: "Notes", glyph: "✎", gridColumn: "8", gridRow: "1" }
+];
+
+let activeWidgetId = "launcher";
+let latestStatus: AppStatus = fallbackStatus;
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -35,50 +133,164 @@ if (!root) {
 const appRoot: HTMLDivElement = root;
 
 function render(status: AppStatus) {
-  const widgetCards = status.widgets
-    .map(
-      (widget) => `
-        <article class="widget-card" data-widget-id="${widget.id}">
-          <div class="widget-card__meta">${widget.size} · ${widget.status}</div>
-          <h3>${widget.name}</h3>
-          <p>${widget.id === "clock" ? currentTime() : widget.id === "memo" ? "Plan, build, verify." : "Open project links fast."}</p>
-        </article>
-      `
-    )
-    .join("");
+  latestStatus = status;
+  const activeWidget = widgets.find((widget) => widget.id === activeWidgetId) ?? widgets[0];
 
   appRoot.innerHTML = `
-    <section class="shell">
-      <aside class="rail" aria-label="OpenWidGet status">
-        <div class="brand-mark">OW</div>
-        <div>
-          <p class="eyebrow">v${status.version}</p>
-          <h1>${status.app_name}</h1>
-          <p class="muted">Hackable Windows desktop widgets powered by HTML/CSS/JS.</p>
+    <section class="runtime-shell" aria-label="OpenWidGet product proof surface">
+      <header class="runtime-topbar">
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">OW</span>
+          <span>
+            <span class="eyebrow">v${status.version} · ${status.mode}</span>
+            <strong>${status.app_name}</strong>
+          </span>
         </div>
-      </aside>
+        <div class="thesis-line">
+          <span>Windows desktop widget runtime</span>
+          <code>Live Shortcut Group + Overlay + Actions</code>
+        </div>
+      </header>
 
-      <section class="hero">
-        <p class="eyebrow">Tauri shell preview</p>
-        <h2>Desktop widgets should be small, local-first, and easy to hack.</h2>
-        <p>
-          This first skeleton proves the app shell, Tauri bridge, and bundled-widget preview surface before the real Windows overlay/runtime work starts.
-        </p>
-        <div class="actions">
-          <button id="refresh-status" type="button">Refresh status</button>
-          <span class="pill">Mode: ${status.mode}</span>
-        </div>
-      </section>
+      <main class="proof-layout">
+        <section class="desktop-surface" aria-label="Windows desktop widget surface preview">
+          <div class="surface-copy">
+            <p class="eyebrow">Product proof surface</p>
+            <h1>HTML/CSS/JS widgets, pinned to the Windows desktop grid.</h1>
+            <p>
+              OpenWidGet reserves desktop icon-grid space with runtime Anchor Shortcuts, then renders live WebView widgets above those slots.
+            </p>
+          </div>
 
-      <section class="desktop-preview" aria-label="Widget preview">
-        <div class="desktop-preview__grid">
-          ${widgetCards}
-        </div>
-      </section>
+          <div class="desktop-frame">
+            <div class="desktop-frame__chrome">
+              <span>Windows desktop · primary monitor</span>
+              <span>8×6 icon grid · ${widgets.reduce((total, widget) => total + widget.anchorCount, 0)} anchor slots</span>
+            </div>
+            <div class="desktop-grid" aria-label="Icon grid with overlay widgets">
+              ${desktopIcons.map(renderDesktopIcon).join("")}
+              ${widgets.map((widget) => renderWidget(widget, activeWidget.id)).join("")}
+              <div class="taskbar" aria-hidden="true">
+                <span class="start-dot">⊞</span>
+                <span class="taskbar-search">Search</span>
+                <span class="taskbar-app is-active">OpenWidGet</span>
+                <span class="taskbar-tray">Tray · runtime on</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="runtime-receipt" aria-label="Selected widget manifest and runtime receipt">
+          ${renderReceipt(activeWidget)}
+        </aside>
+      </main>
     </section>
   `;
 
   document.querySelector<HTMLButtonElement>("#refresh-status")?.addEventListener("click", loadStatus);
+  document.querySelectorAll<HTMLButtonElement>("[data-widget-select]").forEach((button) => {
+    button.addEventListener("click", () => {
+      activeWidgetId = button.dataset.widgetSelect ?? activeWidgetId;
+      render(latestStatus);
+    });
+  });
+}
+
+function renderDesktopIcon(icon: DesktopIcon) {
+  return `
+    <span class="desktop-icon" style="grid-column: ${icon.gridColumn}; grid-row: ${icon.gridRow};">
+      <span>${icon.glyph}</span>
+      <small>${icon.name}</small>
+    </span>
+  `;
+}
+
+function renderWidget(widget: RuntimeWidget, activeId: string) {
+  const isActive = widget.id === activeId;
+  const permissions = widget.permissions.map((permission) => permission.kind).join(" · ");
+
+  return `
+    <button
+      class="runtime-widget runtime-widget--${widget.accent}${isActive ? " is-active" : ""}"
+      style="grid-area: ${widget.grid};"
+      data-widget-select="${widget.id}"
+      type="button"
+      aria-pressed="${isActive}"
+    >
+      <span class="anchor-matrix" aria-hidden="true">${renderAnchorDots(widget.anchorCount)}</span>
+      <span class="widget-topline">
+        <span>${widget.size} Live Shortcut Group</span>
+        <span>${widget.status}</span>
+      </span>
+      <strong>${widget.name}</strong>
+      <span class="widget-metric" data-live-clock="${widget.id === "clock" ? "true" : "false"}">${widget.metric}</span>
+      <span class="widget-body">${widget.body}</span>
+      <span class="widget-permissions">${permissions}</span>
+    </button>
+  `;
+}
+
+function renderAnchorDots(count: number) {
+  return Array.from({ length: count }, (_, index) => `<i style="--i:${index}"></i>`).join("");
+}
+
+function renderReceipt(widget: RuntimeWidget) {
+  const permissionRows = widget.permissions
+    .map(
+      (permission) => `
+        <li>
+          <span class="permission-kind">${permission.kind}</span>
+          <span>${permission.label}</span>
+        </li>
+      `
+    )
+    .join("");
+
+  const actionRows = widget.actions.map((action) => `<li>${action}</li>`).join("");
+
+  return `
+    <div class="receipt-section receipt-section--hero">
+      <p class="eyebrow">Selected widget receipt</p>
+      <h2>${widget.name}</h2>
+      <p>${widget.manifest}</p>
+    </div>
+
+    <div class="manifest-card">
+      <div class="manifest-card__title">widget.json</div>
+      <pre>{
+  "id": "${widget.id}",
+  "runtime": "desktop-grid",
+  "size": "${widget.size}",
+  "anchors": ${widget.anchorCount},
+  "entry": "index.html"
+}</pre>
+    </div>
+
+    <div class="receipt-section">
+      <h3>Permissions</h3>
+      <ul class="permission-list">${permissionRows}</ul>
+    </div>
+
+    <div class="receipt-section">
+      <h3>Actions</h3>
+      <ul class="action-list">${actionRows}</ul>
+    </div>
+
+    <div class="runtime-lifecycle">
+      <span>startup</span>
+      <i></i>
+      <span>materialize anchors</span>
+      <i></i>
+      <span>render overlay</span>
+      <i></i>
+      <span>cleanup on quit</span>
+    </div>
+
+    <div class="receipt-actions">
+      <button id="refresh-status" type="button">Refresh status</button>
+      <span class="runtime-pill">Tray agent: ready</span>
+    </div>
+  `;
 }
 
 function currentTime() {
@@ -87,6 +299,13 @@ function currentTime() {
     minute: "2-digit",
     second: "2-digit"
   }).format(new Date());
+}
+
+function refreshClockText() {
+  widgets[0].metric = currentTime();
+  document.querySelectorAll<HTMLElement>('[data-live-clock="true"]').forEach((clock) => {
+    clock.textContent = widgets[0].metric;
+  });
 }
 
 async function loadStatus() {
@@ -100,7 +319,4 @@ async function loadStatus() {
 }
 
 void loadStatus();
-setInterval(() => {
-  const clockCard = document.querySelector<HTMLElement>('[data-widget-id="clock"] p');
-  if (clockCard) clockCard.textContent = currentTime();
-}, 1000);
+setInterval(refreshClockText, 1000);
