@@ -4,11 +4,30 @@ Use this checklist for checkpoint testing on a real Windows machine.
 
 ## Skeleton launch
 
+`npm run build` only verifies the frontend bundle. Tauri desktop launch requires Rust/Cargo.
+
+First check:
+
+```powershell
+rustc --version
+cargo --version
+```
+
+If either command is missing, install Rustup and the Visual Studio C++ build tools, then reopen PowerShell:
+
+```powershell
+winget install --id Rustlang.Rustup -e
+winget install --id Microsoft.VisualStudio.2022.BuildTools -e --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+```
+
+Then run:
+
 ```powershell
 git clone https://github.com/hoddukzoa12/openWidGet.git
 cd openWidGet
 npm install
 npm run build
+cargo check --manifest-path src-tauri/Cargo.toml
 npm run tauri:dev
 ```
 

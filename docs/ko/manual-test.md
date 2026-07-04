@@ -2,11 +2,28 @@
 
 ## 첫 실행 테스트
 
+Rust/Cargo가 먼저 잡혀야 합니다.
+
+```powershell
+rustc --version
+cargo --version
+```
+
+인식되지 않으면:
+
+```powershell
+winget install --id Rustlang.Rustup -e
+winget install --id Microsoft.VisualStudio.2022.BuildTools -e --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+```
+
+설치 후 PowerShell을 새로 열고 다시 테스트합니다.
+
 ```powershell
 git clone https://github.com/hoddukzoa12/openWidGet.git
 cd openWidGet
 npm install
 npm run build
+cargo check --manifest-path src-tauri/Cargo.toml
 npm run tauri:dev
 ```
 

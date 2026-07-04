@@ -126,6 +126,16 @@ node --version
 npm --version
 ```
 
+If `rustc`/`cargo` are still not found after installing Rustup, try a one-session PATH refresh:
+
+```powershell
+$env:Path += ";$env:USERPROFILE\.cargo\bin"
+rustc --version
+cargo --version
+```
+
+If that works, close and reopen PowerShell or reboot Windows so the Rustup PATH entry is loaded permanently.
+
 Tauri can be installed later once the project skeleton exists.
 
 ---
