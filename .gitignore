@@ -14,7 +14,7 @@ Thumbs.db
 # Rust / Tauri
 /target/
 **/target/
-Cargo.lock
+src-tauri/gen/
 
 # Node / frontend
 node_modules/
@@ -30,6 +30,7 @@ build/
 logs/
 tmp/
 temp/
+.hermes/
 
 # Local generated artifacts
 *.msi

@@ -1,8 +1,12 @@
-# openWidGet
+# OpenWidGet
 
 **Open widgets. Get only what your desktop needs.**
 
-openWidGet is an open-source Windows desktop widget platform that turns static desktop shortcut space into live, icon-backed widgets.
+[한국어 README](./README.ko.md)
+
+OpenWidGet is an open-source Windows desktop widget runtime for hackable HTML/CSS/JS widgets.
+
+> Status: `v0.1-alpha` skeleton in progress. This is an early public proof-of-work, not a production-ready widget platform yet.
 
 ## Concept
 
@@ -13,6 +17,26 @@ Widget = Live Shortcut Group + Visual Overlay + Data Sources + Actions + Permiss
 ```
 
 A widget occupies Windows desktop icon-grid space through runtime **Anchor Shortcuts**, then renders a modern HTML/CSS/JS widget overlay above that space.
+
+## Current alpha shell
+
+The first implementation checkpoint adds:
+
+- Tauri/Rust desktop app skeleton
+- WebView frontend preview surface
+- Rust command bridge via `get_app_status`
+- Tray menu stub: Show, Hide Window, Quit
+- English-primary docs with separated Korean docs
+
+Run locally:
+
+```bash
+npm install
+npm run build
+npm run tauri:dev
+```
+
+Windows manual testing is tracked in [docs/manual-test.md](docs/manual-test.md).
 
 ## Planned MVP
 
@@ -39,11 +63,15 @@ A widget occupies Windows desktop icon-grid space through runtime **Anchor Short
 ## Documentation
 
 - [Product & Implementation Plan](docs/openWidGet-product-implementation-plan.md)
+- [Architecture](docs/architecture.md)
+- [Widget Format Draft](docs/widget-format.md)
+- [Manual Test Checklist](docs/manual-test.md)
 - [Licensing Policy](docs/licensing.md)
+- [한국어 README](README.ko.md)
 
 ## Status
 
-Planning/spec phase. Implementation has not started yet.
+`v0.1-alpha` shell implementation has started. The current checkpoint is a Tauri app skeleton with a WebView preview and tray stub; full Windows overlay/runtime behavior is still planned.
 
 ## License
 

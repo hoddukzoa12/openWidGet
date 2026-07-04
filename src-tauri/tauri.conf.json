@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "OpenWidGet",
+  "version": "0.1.0-alpha.0",
+  "identifier": "com.hoddukzoa.openwidget",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "OpenWidGet",
+        "width": 1120,
+        "height": 760,
+        "minWidth": 900,
+        "minHeight": 620,
+        "center": true,
+        "resizable": true,
+        "decorations": true,
+        "transparent": false
+      }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": false,
+    "icon": []
+  }
+}

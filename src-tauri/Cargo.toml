@@ -1,0 +1,20 @@
+[package]
+name = "openwidget"
+version = "0.1.0-alpha.0"
+description = "OpenWidGet desktop runtime shell"
+authors = ["Jinu Kim"]
+edition = "2021"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/hoddukzoa12/openWidGet"
+
+[lib]
+name = "openwidget_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = ["tray-icon"] }

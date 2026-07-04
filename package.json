@@ -1,0 +1,23 @@
+{
+  "name": "openwidget",
+  "private": true,
+  "version": "0.1.0-alpha.0",
+  "type": "module",
+  "description": "Open-source Windows desktop widget runtime for hackable HTML/CSS/JS widgets.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 1420",
+    "build": "tsc && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 1420",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.11.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4",
+    "typescript": "6.0.3",
+    "vite": "8.1.3"
+  }
+}
