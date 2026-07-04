@@ -15,6 +15,20 @@ type WidgetPreview = {
   status: "bundled-preview";
 };
 
+type AnchorLifecycleStatus = {
+  platform: string;
+  enabled: boolean;
+  session_id: string;
+  desktop_dir: string;
+  state_dir: string;
+  anchors_planned: number;
+  anchors_created: number;
+  stale_detected: number;
+  stale_deleted: number;
+  anchor_files: string[];
+  last_error: string | null;
+};
+
 type PermissionKind = "time" | "network" | "filesystem" | "system" | "process";
 
 type RuntimeWidget = {
@@ -49,6 +63,20 @@ const fallbackStatus: AppStatus = {
     { id: "launcher", name: "Project Launcher", size: "4×2", status: "bundled-preview" },
     { id: "system", name: "System Monitor", size: "2×2", status: "bundled-preview" }
   ]
+};
+
+const fallbackAnchorLifecycle: AnchorLifecycleStatus = {
+  platform: "browser-preview",
+  enabled: false,
+  session_id: "preview-only",
+  desktop_dir: "unavailable outside Tauri",
+  state_dir: "unavailable outside Tauri",
+  anchors_planned: 4,
+  anchors_created: 0,
+  stale_detected: 0,
+  stale_deleted: 0,
+  anchor_files: [],
+  last_error: "Tauri runtime unavailable; Anchor Shortcuts are materialized only by the Windows app."
 };
 
 const widgets: RuntimeWidget[] = [
@@ -123,6 +151,7 @@ const desktopIcons: DesktopIcon[] = [
 
 let activeWidgetId = "launcher";
 let latestStatus: AppStatus = fallbackStatus;
+let latestAnchorLifecycle: AnchorLifecycleStatus = fallbackAnchorLifecycle;
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -132,8 +161,9 @@ if (!root) {
 
 const appRoot: HTMLDivElement = root;
 
-function render(status: AppStatus) {
+function render(status: AppStatus, anchorLifecycle: AnchorLifecycleStatus = latestAnchorLifecycle) {
   latestStatus = status;
+  latestAnchorLifecycle = anchorLifecycle;
   const activeWidget = widgets.find((widget) => widget.id === activeWidgetId) ?? widgets[0];
 
   appRoot.innerHTML = `
@@ -181,7 +211,7 @@ function render(status: AppStatus) {
         </section>
 
         <aside class="runtime-receipt" aria-label="Selected widget manifest and runtime receipt">
-          ${renderReceipt(activeWidget)}
+          ${renderReceipt(activeWidget, anchorLifecycle)}
         </aside>
       </main>
     </section>
@@ -191,7 +221,7 @@ function render(status: AppStatus) {
   document.querySelectorAll<HTMLButtonElement>("[data-widget-select]").forEach((button) => {
     button.addEventListener("click", () => {
       activeWidgetId = button.dataset.widgetSelect ?? activeWidgetId;
-      render(latestStatus);
+      render(latestStatus, latestAnchorLifecycle);
     });
   });
 }
@@ -234,7 +264,7 @@ function renderAnchorDots(count: number) {
   return Array.from({ length: count }, (_, index) => `<i style="--i:${index}"></i>`).join("");
 }
 
-function renderReceipt(widget: RuntimeWidget) {
+function renderReceipt(widget: RuntimeWidget, anchorLifecycle: AnchorLifecycleStatus) {
   const permissionRows = widget.permissions
     .map(
       (permission) => `
@@ -247,6 +277,10 @@ function renderReceipt(widget: RuntimeWidget) {
     .join("");
 
   const actionRows = widget.actions.map((action) => `<li>${action}</li>`).join("");
+  const lifecycleState = anchorLifecycle.enabled ? "active" : "preview";
+  const lifecycleError = anchorLifecycle.last_error
+    ? `<p class="anchor-lifecycle__warning">${anchorLifecycle.last_error}</p>`
+    : "";
 
   return `
     <div class="receipt-section receipt-section--hero">
@@ -264,6 +298,20 @@ function renderReceipt(widget: RuntimeWidget) {
   "anchors": ${widget.anchorCount},
   "entry": "index.html"
 }</pre>
+    </div>
+
+    <div class="anchor-lifecycle-card">
+      <div>
+        <span class="permission-kind">Anchor Shortcut lifecycle</span>
+        <strong>${anchorLifecycle.anchors_created}/${anchorLifecycle.anchors_planned} created · ${lifecycleState}</strong>
+      </div>
+      <dl>
+        <div><dt>session</dt><dd>${anchorLifecycle.session_id}</dd></div>
+        <div><dt>platform</dt><dd>${anchorLifecycle.platform}</dd></div>
+        <div><dt>stale cleanup</dt><dd>${anchorLifecycle.stale_deleted}/${anchorLifecycle.stale_detected}</dd></div>
+        <div><dt>desktop</dt><dd>${anchorLifecycle.desktop_dir}</dd></div>
+      </dl>
+      ${lifecycleError}
     </div>
 
     <div class="receipt-section">
@@ -310,11 +358,17 @@ function refreshClockText() {
 
 async function loadStatus() {
   try {
-    const status = await invoke<AppStatus>("get_app_status");
-    render(status);
+    const [status, anchorLifecycle] = await Promise.all([
+      invoke<AppStatus>("get_app_status"),
+      invoke<AnchorLifecycleStatus>("get_anchor_lifecycle_status").catch((error) => {
+        console.warn("Falling back to preview Anchor Shortcut lifecycle:", error);
+        return fallbackAnchorLifecycle;
+      })
+    ]);
+    render(status, anchorLifecycle);
   } catch (error) {
     console.warn("Falling back to browser preview status:", error);
-    render(fallbackStatus);
+    render(fallbackStatus, fallbackAnchorLifecycle);
   }
 }
 
