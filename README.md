@@ -64,6 +64,7 @@ Windows manual testing is tracked in [docs/manual-test.md](docs/manual-test.md).
 
 - [Product & Implementation Plan](docs/openWidGet-product-implementation-plan.md)
 - [Architecture](docs/architecture.md)
+- [Product-Proof Surface Design](docs/design/product-proof-surface.md)
 - [Widget Format Draft](docs/widget-format.md)
 - [Manual Test Checklist](docs/manual-test.md)
 - [Development Workflow](docs/development-workflow.md)
