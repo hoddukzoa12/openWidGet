@@ -66,6 +66,7 @@ Windows manual testing is tracked in [docs/manual-test.md](docs/manual-test.md).
 - [Architecture](docs/architecture.md)
 - [Widget Format Draft](docs/widget-format.md)
 - [Manual Test Checklist](docs/manual-test.md)
+- [Development Workflow](docs/development-workflow.md)
 - [Licensing Policy](docs/licensing.md)
 - [한국어 README](README.ko.md)
 
