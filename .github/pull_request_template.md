@@ -1,6 +1,8 @@
 ## Linked issue
 
-Closes #
+Closes #123
+
+<!-- Replace 123 with the primary issue number. Use `Refs #123` instead when the PR should not close the issue. -->
 
 ## Summary
 

@@ -47,11 +47,13 @@ Keep the PR limited to the issue. If you discover extra work, create follow-up i
 For implementation cards, include an Evidence Pack when possible:
 
 ```bash
-python3 /Users/hoddukzoa/.hermes/scripts/evidence_pack.py \
-  --repo /Volumes/SSD/JinuVault/Projects/openWidGet \
+python3 <path-to-evidence_pack.py> \
+  --repo <path-to-openWidGet-repo> \
   --cmd 'npm run build && cargo check --manifest-path src-tauri/Cargo.toml' \
   --note 'card=#<issue>; tdd=<yes/no>'
 ```
+
+For example, maintainers can replace `<path-to-evidence_pack.py>` with their local Hermes evidence-pack helper and `<path-to-openWidGet-repo>` with their local checkout path.
 
 ### 4. Open the PR
 
