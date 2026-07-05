@@ -489,6 +489,67 @@ button {
   line-height: 1.55;
 }
 
+.anchor-lifecycle-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(119, 212, 255, 0.22);
+  border-radius: 20px;
+  padding: 13px;
+  background: rgba(119, 212, 255, 0.055);
+}
+
+.anchor-lifecycle-card > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.anchor-lifecycle-card strong {
+  color: #dff5ff;
+  font-size: 0.86rem;
+  letter-spacing: -0.02em;
+}
+
+.anchor-lifecycle-card dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.anchor-lifecycle-card dl div {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.anchor-lifecycle-card dt,
+.anchor-lifecycle-card dd,
+.anchor-lifecycle__warning {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.anchor-lifecycle-card dt {
+  color: var(--faint);
+  text-transform: uppercase;
+}
+
+.anchor-lifecycle-card dd {
+  min-width: 0;
+  overflow: hidden;
+  color: #dce5f2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.anchor-lifecycle__warning {
+  border-left: 2px solid var(--amber);
+  padding-left: 9px;
+  color: #ffe5a3;
+}
+
 .permission-list,
 .action-list {
   display: grid;
@@ -598,6 +659,7 @@ button {
 
   .receipt-section--hero,
   .manifest-card,
+  .anchor-lifecycle-card,
   .runtime-lifecycle,
   .receipt-actions {
     grid-column: 1 / -1;
