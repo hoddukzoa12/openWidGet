@@ -317,27 +317,95 @@ fn create_shortcut(
 }
 
 fn resolve_desktop_dir() -> PathBuf {
-    if let Some(path) = env_path("USERPROFILE").map(|home| home.join("Desktop")) {
-        if path.exists() {
-            return path;
+    let mut candidate_roots = Vec::new();
+    for key in [
+        "OneDrive",
+        "OneDriveConsumer",
+        "OneDriveCommercial",
+        "USERPROFILE",
+    ] {
+        if let Some(path) = env_path(key) {
+            candidate_roots.push(path);
         }
     }
 
-    for key in ["OneDrive", "OneDriveConsumer", "OneDriveCommercial"] {
-        if let Some(path) = env_path(key).map(|root| root.join("Desktop")) {
+    let fallback_desktop = env_path("USERPROFILE")
+        .map(|home| home.join("Desktop"))
+        .unwrap_or_else(|| {
+            env::current_dir()
+                .unwrap_or_else(|_| PathBuf::from("."))
+                .join("Desktop")
+        });
+
+    resolve_desktop_dir_from_parts(
+        resolve_known_desktop_dir(),
+        candidate_roots,
+        fallback_desktop,
+    )
+}
+
+fn resolve_desktop_dir_from_parts(
+    known_desktop: Option<PathBuf>,
+    candidate_roots: impl IntoIterator<Item = PathBuf>,
+    fallback_desktop: PathBuf,
+) -> PathBuf {
+    if let Some(path) = known_desktop.filter(|path| !path.as_os_str().is_empty()) {
+        return path;
+    }
+
+    if let Some(path) = first_existing_desktop_dir(candidate_roots) {
+        return path;
+    }
+
+    fallback_desktop
+}
+
+#[cfg(windows)]
+fn resolve_known_desktop_dir() -> Option<PathBuf> {
+    use std::process::Command;
+
+    let output = Command::new("powershell.exe")
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; [Environment]::GetFolderPath('Desktop')",
+        ])
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    let desktop = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if desktop.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(desktop))
+    }
+}
+
+#[cfg(not(windows))]
+fn resolve_known_desktop_dir() -> Option<PathBuf> {
+    None
+}
+
+fn first_existing_desktop_dir(
+    candidate_roots: impl IntoIterator<Item = PathBuf>,
+) -> Option<PathBuf> {
+    for root in candidate_roots {
+        for folder_name in ["Desktop", "바탕 화면"] {
+            let path = root.join(folder_name);
             if path.exists() {
-                return path;
+                return Some(path);
             }
         }
     }
 
-    if let Some(path) = env_path("USERPROFILE").map(|home| home.join("Desktop")) {
-        return path;
-    }
-
-    env::current_dir()
-        .unwrap_or_else(|_| PathBuf::from("."))
-        .join("Desktop")
+    None
 }
 
 fn resolve_state_dir() -> PathBuf {
@@ -426,14 +494,44 @@ mod tests {
     }
 
     #[test]
+    fn known_desktop_beats_stale_userprofile_desktop() {
+        let root = unique_temp_root("desktop-known-folder");
+        let known_desktop = root.join("OneDrive").join("바탕 화면");
+        let stale_userprofile_desktop = root.join("UserProfile").join("Desktop");
+        fs::create_dir_all(&known_desktop).unwrap();
+        fs::create_dir_all(&stale_userprofile_desktop).unwrap();
+
+        let resolved = resolve_desktop_dir_from_parts(
+            Some(known_desktop.clone()),
+            vec![root.join("UserProfile")],
+            root.join("fallback").join("Desktop"),
+        );
+
+        assert_eq!(resolved, known_desktop);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn fallback_detects_localized_onedrive_desktop() {
+        let root = unique_temp_root("desktop-localized-fallback");
+        let onedrive_desktop = root.join("OneDrive").join("바탕 화면");
+        let userprofile_desktop = root.join("UserProfile").join("Desktop");
+        fs::create_dir_all(&onedrive_desktop).unwrap();
+        fs::create_dir_all(&userprofile_desktop).unwrap();
+
+        let resolved = resolve_desktop_dir_from_parts(
+            None,
+            vec![root.join("OneDrive"), root.join("UserProfile")],
+            root.join("fallback").join("Desktop"),
+        );
+
+        assert_eq!(resolved, onedrive_desktop);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn stale_detection_ignores_active_session_and_non_anchor_files() {
-        let root = env::temp_dir().join(format!(
-            "openwidget-anchor-test-{}",
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or(Duration::from_secs(0))
-                .as_nanos()
-        ));
+        let root = unique_temp_root("stale-detection");
         fs::create_dir_all(&root).unwrap();
 
         let active = root.join("OpenWidGet Anchor - clock - active - r1c1.lnk");
@@ -447,5 +545,15 @@ mod tests {
 
         assert_eq!(stale_results, vec![stale]);
         fs::remove_dir_all(root).unwrap();
+    }
+
+    fn unique_temp_root(label: &str) -> PathBuf {
+        env::temp_dir().join(format!(
+            "openwidget-anchor-test-{label}-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or(Duration::from_secs(0))
+                .as_nanos()
+        ))
     }
 }
