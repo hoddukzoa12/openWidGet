@@ -19,7 +19,7 @@ The first runnable proof is intentionally narrow:
 
 On Windows app startup, OpenWidGet now:
 
-1. resolves the Desktop folder using `%USERPROFILE%\Desktop`, with common OneDrive Desktop fallbacks;
+1. resolves the Desktop folder from the Windows Known Folder value (`[Environment]::GetFolderPath("Desktop")`), with OneDrive/localized fallback handling;
 2. writes a transparent Anchor Shortcut icon into `%LOCALAPPDATA%\OpenWidGet\anchor-shortcuts\openwidget-anchor-transparent.ico`;
 3. scans the Desktop for prior `OpenWidGet Anchor - *.lnk` files whose session does not match the current app session;
 4. deletes stale OpenWidGet-owned Anchor Shortcuts;
