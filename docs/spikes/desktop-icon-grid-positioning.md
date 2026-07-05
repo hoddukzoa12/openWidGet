@@ -88,7 +88,7 @@ Windows smoke checklist:
 
 ```powershell
 cd <repo-root>
-git pull
+git status --short --branch
 npm run build
 cargo test --manifest-path src-tauri/Cargo.toml
 npm run tauri:dev

@@ -171,7 +171,11 @@ fn build_grid_status(
         build_widget_grid_plan("clock", 2, 2, 1, 1, &measurement),
         build_widget_grid_plan("launcher", 4, 2, 3, 1, &measurement),
     ];
-    let reconciliation = reconcile_anchor_positions(&plans, &measurement);
+    let reconciliation = if enabled {
+        reconcile_anchor_positions(&plans, &measurement)
+    } else {
+        fallback_reconciliation(last_error.clone())
+    };
 
     DesktopGridStatus {
         platform: std::env::consts::OS,
@@ -257,6 +261,17 @@ fn positioning_status() -> DesktopPositioningStatus {
             "icon size/spacing/DPI changes require a fresh grid probe",
             "direct mutation of Explorer icon positions is intentionally not executed on every drag frame",
         ],
+    }
+}
+
+fn fallback_reconciliation(last_error: Option<String>) -> DesktopGridReconciliation {
+    DesktopGridReconciliation {
+        mode: "unavailable",
+        observed_anchors: Vec::new(),
+        matches: Vec::new(),
+        last_error: Some(last_error.unwrap_or_else(|| {
+            "desktop grid probing is disabled; reconciliation skipped".to_string()
+        })),
     }
 }
 
@@ -799,6 +814,20 @@ mod tests {
             .api_path
             .iter()
             .any(|step| step.contains("LVM_SETITEMPOSITION")));
+    }
+
+    #[test]
+    fn fallback_status_skips_reconciliation_probe() {
+        let status = fallback_desktop_grid_status("grid probe timed out".to_string());
+
+        assert!(!status.enabled);
+        assert_eq!(status.reconciliation.mode, "unavailable");
+        assert!(status.reconciliation.observed_anchors.is_empty());
+        assert!(status.reconciliation.matches.is_empty());
+        assert_eq!(
+            status.reconciliation.last_error.as_deref(),
+            Some("grid probe timed out")
+        );
     }
 
     #[test]
