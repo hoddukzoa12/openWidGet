@@ -29,6 +29,94 @@ type AnchorLifecycleStatus = {
   last_error: string | null;
 };
 
+type GridRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type GridCell = {
+  width: number;
+  height: number;
+};
+
+type DpiInfo = {
+  x: number;
+  y: number;
+  scale: number;
+};
+
+type AnchorSlotRect = {
+  slot: string;
+  row: number;
+  column: number;
+  rect: GridRect;
+};
+
+type WidgetGridPlan = {
+  widget_id: string;
+  size: string;
+  start_row: number;
+  start_column: number;
+  rows: number;
+  columns: number;
+  rect: GridRect;
+  anchor_slots: AnchorSlotRect[];
+};
+
+type DesktopPositioningStatus = {
+  mode: string;
+  commit_policy: string;
+  api_path: string[];
+  fallback: string;
+  limitations: string[];
+};
+
+type ObservedAnchorPosition = {
+  name: string;
+  index: number;
+  x: number;
+  y: number;
+};
+
+type AnchorPositionMatch = {
+  name: string;
+  target_widget_id: string;
+  target_slot: string;
+  target_rect: GridRect | null;
+  target_view_x: number | null;
+  target_view_y: number | null;
+  observed_x: number;
+  observed_y: number;
+  delta_x: number | null;
+  delta_y: number | null;
+  status: string;
+};
+
+type DesktopGridReconciliation = {
+  mode: string;
+  observed_anchors: ObservedAnchorPosition[];
+  matches: AnchorPositionMatch[];
+  last_error: string | null;
+};
+
+type DesktopGridStatus = {
+  platform: string;
+  enabled: boolean;
+  source: string;
+  work_area: GridRect;
+  monitor_bounds: GridRect;
+  dpi: DpiInfo;
+  icon_cell: GridCell;
+  grid_columns: number;
+  grid_rows: number;
+  plans: WidgetGridPlan[];
+  positioning: DesktopPositioningStatus;
+  reconciliation: DesktopGridReconciliation;
+  last_error: string | null;
+};
+
 type PermissionKind = "time" | "network" | "filesystem" | "system" | "process";
 
 type RuntimeWidget = {
@@ -77,6 +165,54 @@ const fallbackAnchorLifecycle: AnchorLifecycleStatus = {
   stale_deleted: 0,
   anchor_files: [],
   last_error: "Tauri runtime unavailable; Anchor Shortcuts are materialized only by the Windows app."
+};
+
+const fallbackDesktopGrid: DesktopGridStatus = {
+  platform: "browser-preview",
+  enabled: false,
+  source: "deterministic-preview-fallback",
+  work_area: { x: 0, y: 0, width: 1920, height: 1040 },
+  monitor_bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+  dpi: { x: 96, y: 96, scale: 1 },
+  icon_cell: { width: 75, height: 75 },
+  grid_columns: 25,
+  grid_rows: 13,
+  plans: [
+    {
+      widget_id: "clock",
+      size: "2×2",
+      start_row: 1,
+      start_column: 1,
+      rows: 2,
+      columns: 2,
+      rect: { x: 0, y: 0, width: 150, height: 150 },
+      anchor_slots: []
+    },
+    {
+      widget_id: "launcher",
+      size: "4×2",
+      start_row: 1,
+      start_column: 3,
+      rows: 2,
+      columns: 4,
+      rect: { x: 150, y: 0, width: 300, height: 150 },
+      anchor_slots: []
+    }
+  ],
+  positioning: {
+    mode: "reconcile-only",
+    commit_policy: "move overlay during drag; batch-commit Anchor Shortcut positions only on drop",
+    api_path: ["desktop ListView probe", "LVM_GETITEMPOSITION", "LVM_SETITEMPOSITION after Windows proof"],
+    fallback: "align overlay from computed grid receipt if direct shortcut positioning is unreliable",
+    limitations: ["primary monitor only", "auto-arrange may override direct positioning"]
+  },
+  reconciliation: {
+    mode: "unavailable",
+    observed_anchors: [],
+    matches: [],
+    last_error: "Windows desktop ListView reconciliation is unavailable in browser preview."
+  },
+  last_error: "Tauri runtime unavailable; desktop grid probing uses preview geometry."
 };
 
 const widgets: RuntimeWidget[] = [
@@ -152,6 +288,7 @@ const desktopIcons: DesktopIcon[] = [
 let activeWidgetId = "launcher";
 let latestStatus: AppStatus = fallbackStatus;
 let latestAnchorLifecycle: AnchorLifecycleStatus = fallbackAnchorLifecycle;
+let latestDesktopGrid: DesktopGridStatus = fallbackDesktopGrid;
 
 const root = document.querySelector<HTMLDivElement>("#app");
 
@@ -161,9 +298,14 @@ if (!root) {
 
 const appRoot: HTMLDivElement = root;
 
-function render(status: AppStatus, anchorLifecycle: AnchorLifecycleStatus = latestAnchorLifecycle) {
+function render(
+  status: AppStatus,
+  anchorLifecycle: AnchorLifecycleStatus = latestAnchorLifecycle,
+  desktopGrid: DesktopGridStatus = latestDesktopGrid
+) {
   latestStatus = status;
   latestAnchorLifecycle = anchorLifecycle;
+  latestDesktopGrid = desktopGrid;
   const activeWidget = widgets.find((widget) => widget.id === activeWidgetId) ?? widgets[0];
 
   appRoot.innerHTML = `
@@ -195,7 +337,7 @@ function render(status: AppStatus, anchorLifecycle: AnchorLifecycleStatus = late
           <div class="desktop-frame">
             <div class="desktop-frame__chrome">
               <span>Windows desktop · primary monitor</span>
-              <span>8×6 icon grid · ${widgets.reduce((total, widget) => total + widget.anchorCount, 0)} anchor slots</span>
+              <span>${desktopGrid.grid_columns}×${desktopGrid.grid_rows} computed icon grid · ${widgets.reduce((total, widget) => total + widget.anchorCount, 0)} anchor slots</span>
             </div>
             <div class="desktop-grid" aria-label="Icon grid with overlay widgets">
               ${desktopIcons.map(renderDesktopIcon).join("")}
@@ -211,7 +353,7 @@ function render(status: AppStatus, anchorLifecycle: AnchorLifecycleStatus = late
         </section>
 
         <aside class="runtime-receipt" aria-label="Selected widget manifest and runtime receipt">
-          ${renderReceipt(activeWidget, anchorLifecycle)}
+          ${renderReceipt(activeWidget, anchorLifecycle, desktopGrid)}
         </aside>
       </main>
     </section>
@@ -221,7 +363,7 @@ function render(status: AppStatus, anchorLifecycle: AnchorLifecycleStatus = late
   document.querySelectorAll<HTMLButtonElement>("[data-widget-select]").forEach((button) => {
     button.addEventListener("click", () => {
       activeWidgetId = button.dataset.widgetSelect ?? activeWidgetId;
-      render(latestStatus, latestAnchorLifecycle);
+      render(latestStatus, latestAnchorLifecycle, latestDesktopGrid);
     });
   });
 }
@@ -264,7 +406,11 @@ function renderAnchorDots(count: number) {
   return Array.from({ length: count }, (_, index) => `<i style="--i:${index}"></i>`).join("");
 }
 
-function renderReceipt(widget: RuntimeWidget, anchorLifecycle: AnchorLifecycleStatus) {
+function renderReceipt(
+  widget: RuntimeWidget,
+  anchorLifecycle: AnchorLifecycleStatus,
+  desktopGrid: DesktopGridStatus
+) {
   const permissionRows = widget.permissions
     .map(
       (permission) => `
@@ -314,6 +460,8 @@ function renderReceipt(widget: RuntimeWidget, anchorLifecycle: AnchorLifecycleSt
       ${lifecycleError}
     </div>
 
+    ${renderDesktopGridCard(desktopGrid)}
+
     <div class="receipt-section">
       <h3>Permissions</h3>
       <ul class="permission-list">${permissionRows}</ul>
@@ -341,6 +489,73 @@ function renderReceipt(widget: RuntimeWidget, anchorLifecycle: AnchorLifecycleSt
   `;
 }
 
+function renderDesktopGridCard(desktopGrid: DesktopGridStatus) {
+  const gridState = desktopGrid.enabled ? "probed" : "preview";
+  const planRows = desktopGrid.plans
+    .map(
+      (plan) => `
+        <li>
+          <strong>${plan.widget_id}</strong>
+          <span>${plan.size} · ${formatRect(plan.rect)} · ${plan.anchor_slots.length || plan.rows * plan.columns} anchors</span>
+        </li>
+      `
+    )
+    .join("");
+  const reconciliationSummary = `${desktopGrid.reconciliation.mode} · ${desktopGrid.reconciliation.observed_anchors.length} observed · ${desktopGrid.reconciliation.matches.length} matched`;
+  const matchRows = desktopGrid.reconciliation.matches
+    .map(
+      (match) => `
+        <li>
+          <strong>${match.target_widget_id}/${match.target_slot}</strong>
+          <span>${match.status} · observed ${match.observed_x},${match.observed_y} · target view ${formatOptionalPoint(match.target_view_x, match.target_view_y)} · Δx ${formatOptionalNumber(match.delta_x)} · Δy ${formatOptionalNumber(match.delta_y)}</span>
+        </li>
+      `
+    )
+    .join("");
+  const matchList = matchRows
+    ? `<ul class="grid-plan-list grid-match-list" aria-label="Anchor reconciliation deltas">${matchRows}</ul>`
+    : `<p class="grid-policy">No OpenWidGet Anchor positions observed yet.</p>`;
+  const gridError = desktopGrid.last_error
+    ? `<p class="anchor-lifecycle__warning">${desktopGrid.last_error}</p>`
+    : "";
+  const reconciliationError = desktopGrid.reconciliation.last_error
+    ? `<p class="anchor-lifecycle__warning">${desktopGrid.reconciliation.last_error}</p>`
+    : "";
+
+  return `
+    <div class="desktop-grid-card">
+      <div>
+        <span class="permission-kind">Desktop grid positioning</span>
+        <strong>${desktopGrid.grid_columns}×${desktopGrid.grid_rows} cells · ${gridState}</strong>
+      </div>
+      <dl>
+        <div><dt>cell</dt><dd>${desktopGrid.icon_cell.width}×${desktopGrid.icon_cell.height}px</dd></div>
+        <div><dt>work area</dt><dd>${formatRect(desktopGrid.work_area)}</dd></div>
+        <div><dt>dpi</dt><dd>${desktopGrid.dpi.x}×${desktopGrid.dpi.y} (${desktopGrid.dpi.scale}×)</dd></div>
+        <div><dt>positioning</dt><dd>${desktopGrid.positioning.mode}</dd></div>
+        <div><dt>reconcile</dt><dd title="${reconciliationSummary}">${reconciliationSummary}</dd></div>
+      </dl>
+      <ul class="grid-plan-list">${planRows}</ul>
+      ${matchList}
+      <p class="grid-policy">${desktopGrid.positioning.commit_policy}</p>
+      ${gridError}
+      ${reconciliationError}
+    </div>
+  `;
+}
+
+function formatRect(rect: GridRect) {
+  return `${rect.x},${rect.y} ${rect.width}×${rect.height}`;
+}
+
+function formatOptionalNumber(value: number | null) {
+  return value ?? "—";
+}
+
+function formatOptionalPoint(x: number | null, y: number | null) {
+  return x === null || y === null ? "—" : `${x},${y}`;
+}
+
 function currentTime() {
   return new Intl.DateTimeFormat(undefined, {
     hour: "2-digit",
@@ -358,17 +573,21 @@ function refreshClockText() {
 
 async function loadStatus() {
   try {
-    const [status, anchorLifecycle] = await Promise.all([
+    const [status, anchorLifecycle, desktopGrid] = await Promise.all([
       invoke<AppStatus>("get_app_status"),
       invoke<AnchorLifecycleStatus>("get_anchor_lifecycle_status").catch((error) => {
         console.warn("Falling back to preview Anchor Shortcut lifecycle:", error);
         return fallbackAnchorLifecycle;
+      }),
+      invoke<DesktopGridStatus>("get_desktop_grid_status").catch((error) => {
+        console.warn("Falling back to preview desktop grid status:", error);
+        return fallbackDesktopGrid;
       })
     ]);
-    render(status, anchorLifecycle);
+    render(status, anchorLifecycle, desktopGrid);
   } catch (error) {
     console.warn("Falling back to browser preview status:", error);
-    render(fallbackStatus, fallbackAnchorLifecycle);
+    render(fallbackStatus, fallbackAnchorLifecycle, fallbackDesktopGrid);
   }
 }
 

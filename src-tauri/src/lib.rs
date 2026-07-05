@@ -1,6 +1,11 @@
 mod anchor_shortcuts;
+mod desktop_grid;
 
 use anchor_shortcuts::{AnchorLifecycleStatus, AnchorShortcutManager};
+use desktop_grid::{
+    fallback_desktop_grid_status, get_desktop_grid_status as resolve_desktop_grid_status,
+    DesktopGridStatus,
+};
 use serde::Serialize;
 use std::sync::{Arc, Mutex};
 use tauri::{
@@ -78,6 +83,17 @@ fn get_anchor_lifecycle_status(
         })
 }
 
+#[tauri::command]
+async fn get_desktop_grid_status() -> DesktopGridStatus {
+    tauri::async_runtime::spawn_blocking(resolve_desktop_grid_status)
+        .await
+        .unwrap_or_else(|error| {
+            fallback_desktop_grid_status(format!(
+                "desktop grid probe task failed off the UI thread: {error}"
+            ))
+        })
+}
+
 fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Show OpenWidGet", true, None::<&str>)?;
     let hide = MenuItem::with_id(app, "hide", "Hide Window", true, None::<&str>)?;
@@ -137,7 +153,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_app_status,
-            get_anchor_lifecycle_status
+            get_anchor_lifecycle_status,
+            get_desktop_grid_status
         ])
         .run(tauri::generate_context!());
 

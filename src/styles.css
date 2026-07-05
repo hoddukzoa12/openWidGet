@@ -489,7 +489,8 @@ button {
   line-height: 1.55;
 }
 
-.anchor-lifecycle-card {
+.anchor-lifecycle-card,
+.desktop-grid-card {
   display: grid;
   gap: 12px;
   border: 1px solid rgba(119, 212, 255, 0.22);
@@ -498,26 +499,35 @@ button {
   background: rgba(119, 212, 255, 0.055);
 }
 
-.anchor-lifecycle-card > div:first-child {
+.desktop-grid-card {
+  border-color: rgba(172, 127, 255, 0.28);
+  background: rgba(172, 127, 255, 0.065);
+}
+
+.anchor-lifecycle-card > div:first-child,
+.desktop-grid-card > div:first-child {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
 
-.anchor-lifecycle-card strong {
+.anchor-lifecycle-card strong,
+.desktop-grid-card strong {
   color: #dff5ff;
   font-size: 0.86rem;
   letter-spacing: -0.02em;
 }
 
-.anchor-lifecycle-card dl {
+.anchor-lifecycle-card dl,
+.desktop-grid-card dl {
   display: grid;
   gap: 7px;
   margin: 0;
 }
 
-.anchor-lifecycle-card dl div {
+.anchor-lifecycle-card dl div,
+.desktop-grid-card dl div {
   display: grid;
   grid-template-columns: 76px minmax(0, 1fr);
   gap: 8px;
@@ -525,18 +535,23 @@ button {
 
 .anchor-lifecycle-card dt,
 .anchor-lifecycle-card dd,
-.anchor-lifecycle__warning {
+.desktop-grid-card dt,
+.desktop-grid-card dd,
+.anchor-lifecycle__warning,
+.grid-policy {
   margin: 0;
   font-size: 0.72rem;
   line-height: 1.35;
 }
 
-.anchor-lifecycle-card dt {
+.anchor-lifecycle-card dt,
+.desktop-grid-card dt {
   color: var(--faint);
   text-transform: uppercase;
 }
 
-.anchor-lifecycle-card dd {
+.anchor-lifecycle-card dd,
+.desktop-grid-card dd {
   min-width: 0;
   overflow: hidden;
   color: #dce5f2;
@@ -548,6 +563,42 @@ button {
   border-left: 2px solid var(--amber);
   padding-left: 9px;
   color: #ffe5a3;
+}
+
+.grid-plan-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid-plan-list li {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(204, 218, 255, 0.12);
+  border-radius: 12px;
+  padding: 8px 9px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.grid-plan-list strong {
+  color: #f1e9ff;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.grid-plan-list span,
+.grid-policy {
+  color: #c9d2e0;
+}
+
+.grid-match-list li {
+  border-color: rgba(111, 255, 193, 0.16);
+}
+
+.grid-match-list strong {
+  color: #c9ffeb;
 }
 
 .permission-list,
