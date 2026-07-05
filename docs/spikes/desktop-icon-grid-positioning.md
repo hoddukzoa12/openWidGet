@@ -31,7 +31,7 @@ It also attempts a Windows Desktop ListView reconciliation probe for existing `O
 2. open the Explorer process and read ListView item text/positions with remote memory plus `LVM_GETITEMTEXTW` / `LVM_GETITEMPOSITION`;
 3. filter observed desktop icons whose names begin with `OpenWidGet Anchor`;
 4. parse the anchor widget id and slot suffix (`clock` + `r1c1`, `launcher` + `r1c4`, ...);
-5. expose observed-vs-target deltas in the grid receipt.
+5. expose observed-vs-target deltas in the grid receipt after normalizing screen-coordinate target rectangles into Desktop ListView view coordinates.
 
 Each plan includes:
 
@@ -87,7 +87,7 @@ npm run build
 Windows smoke checklist:
 
 ```powershell
-cd C:\Users\jinuk\openWidGet
+cd <repo-root>
 git pull
 npm run build
 cargo test --manifest-path src-tauri/Cargo.toml
@@ -97,11 +97,11 @@ npm run tauri:dev
 While the app is running:
 
 1. Confirm the receipt card shows `Desktop grid positioning`.
-2. Confirm `cell`, `work area`, `dpi`, and `positioning` fields are populated.
+2. Confirm `icon_cell`, `work_area`, `monitor_bounds`, `dpi`, `positioning`, and `reconciliation` are populated.
 3. Confirm plans show at least:
    - `clock` as 2×2 with 4 anchors;
    - `launcher` as 4×2 with 8 anchors.
-4. Confirm `reconcile` shows `windows-listview-probe` when the desktop ListView probe succeeds, with observed/matched counts for visible OpenWidGet Anchor icons.
+4. Confirm `reconciliation` shows `windows-listview-probe` when the desktop ListView probe succeeds, with observed/matched counts and per-anchor delta rows for visible OpenWidGet Anchor icons.
 5. Change Windows desktop icon size or DPI only if safe, restart OpenWidGet, and confirm the grid receipt updates or falls back with a warning.
 6. Keep Explorer auto-arrange behavior noted in the evidence; do not claim direct mutation until an `LVM_SETITEMPOSITION` smoke proves it.
 

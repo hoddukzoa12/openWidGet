@@ -64,6 +64,8 @@ pub struct AnchorPositionMatch {
     pub target_widget_id: String,
     pub target_slot: String,
     pub target_rect: Option<GridRect>,
+    pub target_view_x: Option<i32>,
+    pub target_view_y: Option<i32>,
     pub observed_x: i32,
     pub observed_y: i32,
     pub delta_x: Option<i32>,
@@ -140,6 +142,15 @@ pub fn get_desktop_grid_status() -> DesktopGridStatus {
     build_grid_status(measurement, enabled, source, last_error)
 }
 
+pub fn fallback_desktop_grid_status(error: String) -> DesktopGridStatus {
+    build_grid_status(
+        fallback_grid_measurement(),
+        false,
+        "deterministic-preview-fallback".to_string(),
+        Some(error),
+    )
+}
+
 #[derive(Debug, Clone, PartialEq)]
 struct DesktopGridMeasurement {
     work_area: GridRect,
@@ -160,7 +171,7 @@ fn build_grid_status(
         build_widget_grid_plan("clock", 2, 2, 1, 1, &measurement),
         build_widget_grid_plan("launcher", 4, 2, 3, 1, &measurement),
     ];
-    let reconciliation = reconcile_anchor_positions(&plans);
+    let reconciliation = reconcile_anchor_positions(&plans, &measurement);
 
     DesktopGridStatus {
         platform: std::env::consts::OS,
@@ -249,12 +260,15 @@ fn positioning_status() -> DesktopPositioningStatus {
     }
 }
 
-fn reconcile_anchor_positions(plans: &[WidgetGridPlan]) -> DesktopGridReconciliation {
+fn reconcile_anchor_positions(
+    plans: &[WidgetGridPlan],
+    measurement: &DesktopGridMeasurement,
+) -> DesktopGridReconciliation {
     match probe_windows_anchor_positions() {
         Ok(observed_anchors) => {
             let matches = observed_anchors
                 .iter()
-                .map(|anchor| match_anchor_to_target(anchor, plans))
+                .map(|anchor| match_anchor_to_target(anchor, plans, measurement))
                 .collect();
             DesktopGridReconciliation {
                 mode: "windows-listview-probe",
@@ -275,6 +289,7 @@ fn reconcile_anchor_positions(plans: &[WidgetGridPlan]) -> DesktopGridReconcilia
 fn match_anchor_to_target(
     anchor: &ObservedAnchorPosition,
     plans: &[WidgetGridPlan],
+    measurement: &DesktopGridMeasurement,
 ) -> AnchorPositionMatch {
     let (target_widget_id, target_slot) = parse_anchor_widget_and_slot(&anchor.name)
         .unwrap_or_else(|| ("unknown".to_string(), "unknown".to_string()));
@@ -286,14 +301,20 @@ fn match_anchor_to_target(
         .find(|slot| slot.slot == target_slot)
         .map(|slot| slot.rect.clone());
 
-    let (delta_x, delta_y, status) = if let Some(rect) = &target_rect {
-        (
-            Some(anchor.x - rect.x),
-            Some(anchor.y - rect.y),
-            "observed-target-delta",
-        )
-    } else {
-        (None, None, "no-target-slot")
+    let target_view_x = target_rect
+        .as_ref()
+        .map(|rect| rect.x - measurement.monitor_bounds.x);
+    let target_view_y = target_rect
+        .as_ref()
+        .map(|rect| rect.y - measurement.monitor_bounds.y);
+
+    let (delta_x, delta_y, status) = match (target_view_x, target_view_y) {
+        (Some(x), Some(y)) => (
+            Some(anchor.x - x),
+            Some(anchor.y - y),
+            "observed-target-view-delta",
+        ),
+        _ => (None, None, "no-target-slot"),
     };
 
     AnchorPositionMatch {
@@ -301,6 +322,8 @@ fn match_anchor_to_target(
         target_widget_id,
         target_slot,
         target_rect,
+        target_view_x,
+        target_view_y,
         observed_x: anchor.x,
         observed_y: anchor.y,
         delta_x,
@@ -326,9 +349,52 @@ fn parse_anchor_widget_and_slot(name: &str) -> Option<(String, String)> {
 }
 
 #[cfg(windows)]
-fn probe_windows_anchor_positions() -> Result<Vec<ObservedAnchorPosition>, String> {
-    use std::process::Command;
+const WINDOWS_PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(4);
 
+#[cfg(windows)]
+fn run_powershell_probe(script: &str, label: &str) -> Result<std::process::Output, String> {
+    use std::process::{Command, Stdio};
+    use std::thread;
+    use std::time::Instant;
+
+    let mut child = Command::new("powershell.exe")
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            script,
+        ])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("failed to start {label}: {error}"))?;
+
+    let started = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_status)) => {
+                return child
+                    .wait_with_output()
+                    .map_err(|error| format!("failed to collect {label} output: {error}"));
+            }
+            Ok(None) if started.elapsed() >= WINDOWS_PROBE_TIMEOUT => {
+                let _ = child.kill();
+                let _ = child.wait_with_output();
+                return Err(format!(
+                    "{label} timed out after {}s",
+                    WINDOWS_PROBE_TIMEOUT.as_secs()
+                ));
+            }
+            Ok(None) => thread::sleep(std::time::Duration::from_millis(50)),
+            Err(error) => return Err(format!("failed while waiting for {label}: {error}")),
+        }
+    }
+}
+
+#[cfg(windows)]
+fn probe_windows_anchor_positions() -> Result<Vec<ObservedAnchorPosition>, String> {
     let script = r#"
 $ErrorActionPreference = 'Stop'
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -501,19 +567,7 @@ public static class DesktopListViewProbe {
 [DesktopListViewProbe]::GetOpenWidGetAnchors() | ConvertTo-Json -Depth 5 -Compress
 "#;
 
-    let output = Command::new("powershell.exe")
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            script,
-        ])
-        .output()
-        .map_err(|error| {
-            format!("failed to execute Windows desktop ListView anchor probe: {error}")
-        })?;
+    let output = run_powershell_probe(script, "Windows desktop ListView anchor probe")?;
 
     if !output.status.success() {
         return Err(format!(
@@ -557,8 +611,6 @@ impl From<WindowsListViewAnchorPosition> for ObservedAnchorPosition {
 
 #[cfg(windows)]
 fn probe_windows_grid() -> Result<WindowsGridProbe, String> {
-    use std::process::Command;
-
     let script = r#"
 $ErrorActionPreference = 'Stop'
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -599,17 +651,7 @@ if ($cellHeight -lt 48) { $cellHeight = 75 }
 } | ConvertTo-Json -Depth 5 -Compress
 "#;
 
-    let output = Command::new("powershell.exe")
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            script,
-        ])
-        .output()
-        .map_err(|error| format!("failed to execute Windows desktop grid probe: {error}"))?;
+    let output = run_powershell_probe(script, "Windows desktop grid probe")?;
 
     if !output.status.success() {
         return Err(format!(
@@ -784,7 +826,7 @@ mod tests {
             y: 130,
         };
 
-        let matched = match_anchor_to_target(&observed, &[clock_plan, launcher_plan]);
+        let matched = match_anchor_to_target(&observed, &[clock_plan, launcher_plan], &measurement);
 
         assert_eq!(matched.target_widget_id, "launcher");
         assert_eq!(matched.target_slot, "r2c2");
@@ -799,7 +841,48 @@ mod tests {
         );
         assert_eq!(matched.delta_x, Some(10));
         assert_eq!(matched.delta_y, Some(10));
-        assert_eq!(matched.status, "observed-target-delta");
+        assert_eq!(matched.status, "observed-target-view-delta");
+    }
+
+    #[test]
+    fn normalizes_screen_targets_to_listview_coordinates_before_delta() {
+        let measurement = DesktopGridMeasurement {
+            work_area: GridRect {
+                x: 110,
+                y: 70,
+                width: 800,
+                height: 600,
+            },
+            monitor_bounds: GridRect {
+                x: 100,
+                y: 50,
+                width: 800,
+                height: 640,
+            },
+            dpi: DpiInfo {
+                x: 96.0,
+                y: 96.0,
+                scale: 1.0,
+            },
+            icon_cell: GridCell {
+                width: 80,
+                height: 100,
+            },
+        };
+        let plan = build_widget_grid_plan("clock", 2, 2, 1, 1, &measurement);
+        let observed = ObservedAnchorPosition {
+            name: "OpenWidGet Anchor - clock - session-1 - r1c1.lnk".to_string(),
+            index: 2,
+            x: 10,
+            y: 20,
+        };
+
+        let matched = match_anchor_to_target(&observed, &[plan], &measurement);
+
+        assert_eq!(matched.target_view_x, Some(10));
+        assert_eq!(matched.target_view_y, Some(20));
+        assert_eq!(matched.delta_x, Some(0));
+        assert_eq!(matched.delta_y, Some(0));
     }
 
     #[test]

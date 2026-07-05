@@ -593,6 +593,14 @@ button {
   color: #c9d2e0;
 }
 
+.grid-match-list li {
+  border-color: rgba(111, 255, 193, 0.16);
+}
+
+.grid-match-list strong {
+  color: #c9ffeb;
+}
+
 .permission-list,
 .action-list {
   display: grid;

@@ -2,7 +2,10 @@ mod anchor_shortcuts;
 mod desktop_grid;
 
 use anchor_shortcuts::{AnchorLifecycleStatus, AnchorShortcutManager};
-use desktop_grid::{get_desktop_grid_status as resolve_desktop_grid_status, DesktopGridStatus};
+use desktop_grid::{
+    fallback_desktop_grid_status, get_desktop_grid_status as resolve_desktop_grid_status,
+    DesktopGridStatus,
+};
 use serde::Serialize;
 use std::sync::{Arc, Mutex};
 use tauri::{
@@ -81,8 +84,14 @@ fn get_anchor_lifecycle_status(
 }
 
 #[tauri::command]
-fn get_desktop_grid_status() -> DesktopGridStatus {
-    resolve_desktop_grid_status()
+async fn get_desktop_grid_status() -> DesktopGridStatus {
+    tauri::async_runtime::spawn_blocking(resolve_desktop_grid_status)
+        .await
+        .unwrap_or_else(|error| {
+            fallback_desktop_grid_status(format!(
+                "desktop grid probe task failed off the UI thread: {error}"
+            ))
+        })
 }
 
 fn build_tray(app: &tauri::App) -> tauri::Result<()> {

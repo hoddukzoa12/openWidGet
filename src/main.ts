@@ -85,6 +85,8 @@ type AnchorPositionMatch = {
   target_widget_id: string;
   target_slot: string;
   target_rect: GridRect | null;
+  target_view_x: number | null;
+  target_view_y: number | null;
   observed_x: number;
   observed_y: number;
   delta_x: number | null;
@@ -499,6 +501,20 @@ function renderDesktopGridCard(desktopGrid: DesktopGridStatus) {
       `
     )
     .join("");
+  const reconciliationSummary = `${desktopGrid.reconciliation.mode} · ${desktopGrid.reconciliation.observed_anchors.length} observed · ${desktopGrid.reconciliation.matches.length} matched`;
+  const matchRows = desktopGrid.reconciliation.matches
+    .map(
+      (match) => `
+        <li>
+          <strong>${match.target_widget_id}/${match.target_slot}</strong>
+          <span>${match.status} · observed ${match.observed_x},${match.observed_y} · target view ${formatOptionalPoint(match.target_view_x, match.target_view_y)} · Δx ${formatOptionalNumber(match.delta_x)} · Δy ${formatOptionalNumber(match.delta_y)}</span>
+        </li>
+      `
+    )
+    .join("");
+  const matchList = matchRows
+    ? `<ul class="grid-plan-list grid-match-list" aria-label="Anchor reconciliation deltas">${matchRows}</ul>`
+    : `<p class="grid-policy">No OpenWidGet Anchor positions observed yet.</p>`;
   const gridError = desktopGrid.last_error
     ? `<p class="anchor-lifecycle__warning">${desktopGrid.last_error}</p>`
     : "";
@@ -517,9 +533,10 @@ function renderDesktopGridCard(desktopGrid: DesktopGridStatus) {
         <div><dt>work area</dt><dd>${formatRect(desktopGrid.work_area)}</dd></div>
         <div><dt>dpi</dt><dd>${desktopGrid.dpi.x}×${desktopGrid.dpi.y} (${desktopGrid.dpi.scale}×)</dd></div>
         <div><dt>positioning</dt><dd>${desktopGrid.positioning.mode}</dd></div>
-        <div><dt>reconcile</dt><dd>${desktopGrid.reconciliation.mode} · ${desktopGrid.reconciliation.observed_anchors.length} observed · ${desktopGrid.reconciliation.matches.length} matched</dd></div>
+        <div><dt>reconcile</dt><dd title="${reconciliationSummary}">${reconciliationSummary}</dd></div>
       </dl>
       <ul class="grid-plan-list">${planRows}</ul>
+      ${matchList}
       <p class="grid-policy">${desktopGrid.positioning.commit_policy}</p>
       ${gridError}
       ${reconciliationError}
@@ -529,6 +546,14 @@ function renderDesktopGridCard(desktopGrid: DesktopGridStatus) {
 
 function formatRect(rect: GridRect) {
   return `${rect.x},${rect.y} ${rect.width}×${rect.height}`;
+}
+
+function formatOptionalNumber(value: number | null) {
+  return value ?? "—";
+}
+
+function formatOptionalPoint(x: number | null, y: number | null) {
+  return x === null || y === null ? "—" : `${x},${y}`;
 }
 
 function currentTime() {
