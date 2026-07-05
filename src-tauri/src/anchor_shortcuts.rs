@@ -250,7 +250,8 @@ pub fn find_stale_anchor_shortcuts_in(
             .file_name()
             .and_then(|value| value.to_str())
             .unwrap_or_default();
-        if !filename.contains(active_session_id) {
+        let active_session_token = format!(" - {active_session_id} - ");
+        if !filename.contains(&active_session_token) {
             stale.push(path);
         }
     }
@@ -544,6 +545,59 @@ mod tests {
         let stale_results = find_stale_anchor_shortcuts_in(&root, "active").unwrap();
 
         assert_eq!(stale_results, vec![stale]);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn stale_detection_uses_exact_session_token() {
+        let root = unique_temp_root("stale-exact-session");
+        fs::create_dir_all(&root).unwrap();
+
+        let active = root.join("OpenWidGet Anchor - clock - active - r1c1.lnk");
+        let inactive = root.join("OpenWidGet Anchor - clock - inactive - r1c1.lnk");
+        File::create(&active).unwrap();
+        File::create(&inactive).unwrap();
+
+        let stale_results = find_stale_anchor_shortcuts_in(&root, "active").unwrap();
+
+        assert_eq!(stale_results, vec![inactive]);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn cleanup_current_session_removes_only_current_anchor_files() {
+        let root = unique_temp_root("cleanup-current-session");
+        let desktop_dir = root.join("Desktop");
+        let state_dir = root.join("state");
+        fs::create_dir_all(&desktop_dir).unwrap();
+        fs::create_dir_all(&state_dir).unwrap();
+
+        let manager = AnchorShortcutManager {
+            session_id: "current".to_string(),
+            desktop_dir: desktop_dir.clone(),
+            state_dir,
+            target_exe: root.join("openwidget.exe"),
+            icon_path: root.join("anchor.ico"),
+        };
+
+        let current_anchors = build_anchor_plan("clock", 2, 2, "current");
+        for anchor in &current_anchors {
+            File::create(desktop_dir.join(&anchor.filename)).unwrap();
+        }
+
+        let stale = desktop_dir.join("OpenWidGet Anchor - clock - old - r1c1.lnk");
+        let unrelated = desktop_dir.join("Normal Shortcut.lnk");
+        File::create(&stale).unwrap();
+        File::create(&unrelated).unwrap();
+
+        let deleted = manager.cleanup_current_session().unwrap();
+
+        assert_eq!(deleted, 4);
+        for anchor in current_anchors {
+            assert!(!desktop_dir.join(anchor.filename).exists());
+        }
+        assert!(stale.exists());
+        assert!(unrelated.exists());
         fs::remove_dir_all(root).unwrap();
     }
 
